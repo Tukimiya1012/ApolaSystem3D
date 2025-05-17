@@ -13,28 +13,14 @@
             import * as THREE from "three";
             import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-            //サイズを指定
-            const width = 960;
-            const height = 540;
-
-            //レンダラーを作成
-            const canvasElement = document.querySelector("#myCanvas")
-            const renderer = new THREE.WebGLRenderer({
-                canvas: document.querySelector("#myCanvas"),
-            });
-            renderer.setPixelRatio(window.devicePixelratio);
-            renderer.setSize(width,height);
-
-            //シーンを作成
-            const scene = new THREE.Scene();
-
-            //カメラを作成
-            const camera = new THREE.PerspectiveCamera(40,width/height,0.1,Math.pow(10,100));
-            camera.position.set(0,0,100000);
-
-            //座標軸
-            var axes = new THREE.AxesHelper(5000);
-            scene.add(axes);
+            var SettingElements;
+            var scene;
+            var camera;
+            var renderer;
+            SettingElements = Setting(scene);
+            scene = SettingElements[0];
+            camera = SettingElements[1];
+            renderer = SettingElements[2];
 
             //マテリアル設定
             const material = new THREE.MeshBasicMaterial({wireframe:true});
@@ -48,6 +34,8 @@
             var PlanetSize = 1,
                 frame = 0,
                 targetNumber = 0,
+                PointsCount = 0,
+                PointsCountValue = 1,
                 a = [],
                 b = [],
                 c = [],
@@ -63,6 +51,7 @@
             document.getElementById("bysok").value = simT;
             document.getElementById("size").value = PlanetSize;
             document.getElementById("target").value = 0;
+            document.getElementById("Point").value = PointsCountValue;
 
             var nameIndexs = [
                 "apola","nelme","lapea","mela","kijana","kazul","skazon"
@@ -158,7 +147,7 @@
                 new THREE.Vector3(0,OrbitalBodys.skazon.acc*Math.sin(OrbitalBodys.skazon.i*Math.PI/180),-OrbitalBodys.skazon.acc - OrbitalBodys.kijana.acc)
             ];
 
-            //星系設定
+            //惑星設定
             const apola_geo = new THREE.SphereGeometry(OrbitalBodys.apola.r , 16, 8);
             const nelme_geo = new THREE.SphereGeometry(OrbitalBodys.nelme.r , 16, 8);
             const lapea_geo = new THREE.SphereGeometry(OrbitalBodys.lapea.r , 16,8);
@@ -185,14 +174,7 @@
             planets["kazul"].position.set(PosVector3[5].x, PosVector3[5].y, PosVector3[5].z);
             planets["skazon"].position.set(PosVector3[6].x, PosVector3[6].y, PosVector3[6].z);
 
-            scene.attach(planets["apola"]);
-            scene.attach(planets["nelme"]);
-            scene.attach(planets["lapea"]);
-            scene.attach(planets["mela"]);
-            scene.attach(planets["kijana"]);
-            scene.attach(planets["kazul"]);
-            scene.attach(planets["skazon"]);
-
+            //オービット
             const apola_orbit = new THREE.BufferGeometry().setFromPoints(a);
             const nelme_orbit = new THREE.BufferGeometry().setFromPoints(b);
             const lapea_orbit = new THREE.BufferGeometry().setFromPoints(c);
@@ -201,13 +183,17 @@
             const kazul_orbit = new THREE.BufferGeometry().setFromPoints(f);
             const skazon_orbit = new THREE.BufferGeometry().setFromPoints(g);
 
-            scene.attach(new THREE.Line(apola_orbit,linemat));
-            scene.attach(new THREE.Line(nelme_orbit,linemat));
-            scene.attach(new THREE.Line(lapea_orbit,linemat2));
-            scene.attach(new THREE.Line(mela_orbit,linemat2));
-            scene.attach(new THREE.Line(kijana_orbit,linemat2));
-            scene.attach(new THREE.Line(kazul_orbit,linemat2));
-            scene.attach(new THREE.Line(skazon_orbit,linemat2));
+            var orbits = {
+                apola:new THREE.Line(apola_orbit,linemat),
+                nelme:new THREE.Line(nelme_orbit,linemat),
+                lapea:new THREE.Line(lapea_orbit,linemat2),
+                mela:new THREE.Line(mela_orbit,linemat2),
+                kijana:new THREE.Line(kijana_orbit,linemat2),
+                kazul:new THREE.Line(kazul_orbit,linemat2),
+                skazon:new THREE.Line(skazon_orbit,linemat2)
+            };
+
+            ObjectAttach(scene);
 
             tick();
 
@@ -226,7 +212,7 @@
 
             //位置、サイズアップデート
 
-            function PosUpdate(){
+            function PosUpdatePlaet(){
                 planets["apola"].position.set(PosVector3[0].x, PosVector3[0].y, PosVector3[0].z);
                 planets["nelme"].position.set(PosVector3[1].x, PosVector3[1].y, PosVector3[1].z);
                 planets["lapea"].position.set(PosVector3[2].x, PosVector3[2].y, PosVector3[2].z);
@@ -290,14 +276,22 @@
                     Velocity[i].add(accs_new[i].clone().multiplyScalar(dt/2));
                 }
 
-                PosUpdate();
-                a.push(PosVector3[0].clone());
-                b.push(PosVector3[1].clone());
-                c.push(PosVector3[2].clone());
-                d.push(PosVector3[3].clone());
-                e.push(PosVector3[4].clone());
-                f.push(PosVector3[5].clone());
-                g.push(PosVector3[6].clone());
+                PosUpdatePlaet();
+
+                if (PointsCount == PointsCountValue){
+                    a.push(PosVector3[0].clone());
+                    b.push(PosVector3[1].clone());
+                    c.push(PosVector3[2].clone());
+                    d.push(PosVector3[3].clone());
+                    e.push(PosVector3[4].clone());
+                    f.push(PosVector3[5].clone());
+                    g.push(PosVector3[6].clone());
+
+                    PointsCount = 0;
+                }
+
+                PointsCount++;
+                
             }
 
 
@@ -309,6 +303,8 @@
             var cameraAzimuth = 0;
             var cameraElevation = 0;
             var cameraZoom = 100000;
+            var ZoomValue = 50;
+
             function tick(){
                 requestAnimationFrame(tick);
                 frame++;
@@ -316,13 +312,14 @@
                     orbital();
                     time++;
                 }
-                if(a.length > 300){ a.splice(0, 4); }
-                if(b.length > 300){ b.splice(0, 4); }
-                if(c.length > 300){ c.splice(0, 4); }
-                if(d.length > 300){ d.splice(0, 4); }
-                if(e.length > 300){ e.splice(0, 4); }
-                if(f.length > 300){ f.splice(0, 4); }
-                if(g.length > 300){ g.splice(0, 4); }
+                if(a.length > 500){ a.splice(0, 4); }
+                if(b.length > 500){ b.splice(0, 4); }
+                if(c.length > 500){ c.splice(0, 4); }
+                if(d.length > 500){ d.splice(0, 4); }
+                if(e.length > 500){ e.splice(0, 4); }
+                if(f.length > 500){ f.splice(0, 4); }
+                if(g.length > 500){ g.splice(0, 4); }
+
                 apola_orbit.setFromPoints(a);
                 nelme_orbit.setFromPoints(b);
                 lapea_orbit.setFromPoints(c);
@@ -331,24 +328,66 @@
                 kazul_orbit.setFromPoints(f);
                 skazon_orbit.setFromPoints(g);
 
+                //UI取得
                 document.getElementById("year").innerText = Math.trunc(time/200);
                 simT = Number(document.getElementById("bysok").value);
                 PlanetSize = Number(document.getElementById("size").value);
                 targetNumber = Number(document.getElementById("target").value);
+                PointsCountValue = Number(document.getElementById("Point").value);
+                document.getElementById("value").innerText = ZoomValue;
+                document.getElementById("value2").innerText = cameraZoom;
+
 
                 updateCameraPosition(cameraZoom, cameraAzimuth, cameraElevation);
 
                 renderer.render(scene,camera);
-            }   
+            } 
+
+            //ウィンドウリサイズ
+            window.addEventListener("resize",function() {
+                SettingElements = Setting(scene);
+                scene = SettingElements[0];
+                camera = SettingElements[1];
+                renderer = SettingElements[2];
+                
+                ObjectAttach(scene);
+            });
+
+            //オブジェクト配置
+            function ObjectAttach(scene){
+                scene.attach(planets["apola"]);
+                scene.attach(planets["nelme"]);
+                scene.attach(planets["lapea"]);
+                scene.attach(planets["mela"]);
+                scene.attach(planets["kijana"]);
+                scene.attach(planets["kazul"]);
+                scene.attach(planets["skazon"]);
+
+                scene.attach(orbits["apola"]);
+                scene.attach(orbits["nelme"]);
+                scene.attach(orbits["lapea"]);
+                scene.attach(orbits["mela"]);
+                scene.attach(orbits["kijana"]);
+                scene.attach(orbits["kazul"]);
+                scene.attach(orbits["skazon"]);
+            }
 
             document.querySelector("#myCanvas").addEventListener("mousedown", onDocumentMouseDown, false);
             document.querySelector("#myCanvas").addEventListener("mousemove", onDocumentMouseMove, false);
             document.querySelector("#myCanvas").addEventListener("mouseup", onDocumentMouseUp, false);
             document.querySelector("#myCanvas").addEventListener("wheel", onDocumentWheel, false);
             function onDocumentWheel(event){
-                cameraZoom += event.deltaY*50;
-                if(cameraZoom <= 10){
-                    cameraZoom = 10
+
+                cameraZoom += event.deltaY*ZoomValue;
+                if(cameraZoom <= 2){
+                    cameraZoom = 2;
+                    ZoomValue = 0.02;
+                }else if(cameraZoom<=1000 && cameraZoom>2){
+                    ZoomValue = 0.1;
+                }else if(cameraZoom>500 && cameraZoom<2000){
+                    ZoomValue = 10;
+                }else if(cameraZoom>2000 && cameraZoom<25000){
+                    ZoomValue = 50;
                 };
             }
             function onDocumentMouseDown(event){
@@ -386,6 +425,32 @@
                 camera.lookAt(planets[nameIndexs[targetNumber]].position);
             }
 
+            function Setting(scene){
+                //サイズを指定
+                var width = window.innerWidth;
+                var height = window.innerHeight;
+
+                //レンダラーを作成
+                const canvasElement = document.querySelector("#myCanvas")
+                const renderer = new THREE.WebGLRenderer({
+                    canvas: document.querySelector("#myCanvas"),
+                });
+                renderer.setPixelRatio(window.devicePixelratio);
+                renderer.setSize(width,height);
+
+                //シーンを作成
+                scene = new THREE.Scene();
+
+                //カメラを作成
+                const camera = new THREE.PerspectiveCamera(60,width/height,0.1,Math.pow(10,100));
+                camera.position.set(0,0,100000);
+
+                //座標軸
+                var axes = new THREE.AxesHelper(5000);
+                scene.add(axes);
+
+                return [scene,camera,renderer];
+            }
         </script>
     </head>
     <body>
@@ -396,9 +461,16 @@
             <input type="number" id="bysok" name="tentacles" min="1" max="300" />
             <input type="number" id="size" name="tentacles" min="1" max="300" /> <br>
             <input type="number" id="target" name="tentacles" min="0" max="10" />
+            <input type="number" id="Point" name="tentacles" min="1" max="300" /> <br>
+            <span id="value"></span> <br>
+            <span id="value2"></span> <br>
         </div>
 
         <style>
+            #myCanvas{
+                width: 100%;
+                height: 100%;
+            }
             .uis{
                 color: white;
                 position: absolute;
